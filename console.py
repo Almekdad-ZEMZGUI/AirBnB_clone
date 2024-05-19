@@ -115,30 +115,47 @@ class HBNBCommand(cmd.Cmd):
             print("** class doesn't exist **")
 
     def do_update(self, line):
-        """
-        Update if given exact object
-        """
+        """Updates an instance based on the class name and id by adding or updating attribute"""
         args = parse(line)
-        if len(args) >= 4:
-            key = "{}.{}".format(args[0], args[1])
-            cast = type(eval(args[3]))
-            arg3 = args[3]
-            arg3 = arg3.strip('"')
-            arg3 = arg3.strip("'")
-            setattr(storage.all()[key], args[2], cast(arg3))
-            storage.all()[key].save()
-        elif len(args) == 0:
-            print("** class name missing **")
-        elif args[0] not in HBNBCommand.classes:
-            print("** class doesn't exist **")
-        elif len(args) == 1:
-            print("** instance id missing **")
-        elif ("{}.{}".format(args[0], args[1])) not in storage.all().keys():
-            print("** no instance found **")
-        elif len(args) == 2:
-            print("** attribute name missing **")
-        else:
-            print("** value missing **")
+        try:
+            if not args:
+                raise ValueError("** class name missing **")
+            args_list = args.split()
+            if len(args_list) < 2:
+                raise ValueError("** instance id missing **")
+            if len(args_list) < 3:
+                raise ValueError("** attribute name missing **")
+            if len(args_list) < 4:
+                raise ValueError("** value missing **")
+
+            class_name = args_list[0]
+            instance_id = args_list[1]
+            attribute_name = args_list[2]
+            attribute_value = args_list[3].strip('"')
+
+            if class_name not in self.classes:
+                raise ValueError("** class doesn't exist **")
+
+            key = "{}.{}".format(class_name, instance_id)
+            instance = storage.all().get(key)
+            if not instance:
+                raise ValueError("** no instance found **")
+
+            if attribute_name in ['id', 'created_at', 'updated_at']:
+                return
+
+            attr_type = type(getattr(instance, attribute_name, str))
+            try:
+                attribute_value = attr_type(attribute_value)
+            except ValueError:
+                print("** wrong value type **")
+                return
+
+            setattr(instance, attribute_name, attribute_value)
+            instance.save()
+
+        except ValueError as e:
+            print(e)
 
     def do_count(self, line):
         """
